@@ -1,31 +1,33 @@
 # MNIST Handwritten Digit Recognition (Realtime)
 
-Web application Flask untuk mengenali satu digit tulisan tangan secara realtime memakai CNN TensorFlow/Keras. Arsitektur dan proses training mengikuti spesifikasi proyek: dua `Conv2D`, dua `MaxPooling2D`, `Flatten`, dan layer `Dense`.
+Aplikasi pengenalan digit 0–9 yang berjalan sepenuhnya di browser. UI memakai canvas HTML dan TensorFlow.js; tidak ada Flask atau endpoint API saat dipublikasikan, sehingga proyek dapat di-host di GitHub Pages.
 
-## Menjalankan aplikasi
+## Menyiapkan model web
 
-1. Install dependency:
+Training tetap memakai arsitektur CNN Keras dalam `train_model.py` dan hanya dilakukan sekali.
 
-   ```bash
-   pip install -r requirements.txt
+```powershell
+pip install -r requirements.txt
+python train_model.py
+python convert_model.py
+```
+
+`convert_model.py` membuat `model/model.json` dan file bobot `.bin`. Commit semua file tersebut ke GitHub karena browser memuatnya untuk prediksi.
+
+## Publish di GitHub Pages
+
+1. Push project termasuk isi `model/`:
+
+   ```powershell
+   git add .
+   git commit -m "Add TensorFlow.js browser model"
+   git push
    ```
 
-2. Train model (sekali saja; proses ini mengunduh dataset MNIST jika belum ada):
+2. Di repository GitHub, buka **Settings** → **Pages**.
+3. Pilih **Deploy from a branch**, branch `main`, dan folder `/(root)`, lalu klik **Save**.
+4. Link biasanya menjadi `https://Juliaan77.github.io/cnn-mnist/`.
 
-   ```bash
-   python train_model.py
-   ```
+## Cara kerja realtime
 
-3. Jalankan web server:
-
-   ```bash
-   python app.py
-   ```
-
-4. Buka [http://127.0.0.1:5000](http://127.0.0.1:5000).
-
-## Cara kerja
-
-Frontend mengirim PNG canvas setelah debounce 200 ms. Backend membalik gambar (ink hitam pada canvas menjadi putih seperti MNIST), mendeteksi bounding box tulisan, menambah padding, mengubah ukurannya agar muat sekitar 20×20 sambil menjaga rasio, memusatkannya menggunakan center of mass, lalu menormalisasi hasil menjadi `float32` dengan bentuk `(1, 28, 28, 1)`. Probabilitas yang ditampilkan berasal langsung dari `model.predict()`.
-
-`app.py` tidak pernah melatih model. Jika `mnist_cnn.keras` belum ada, jalankan `train_model.py` terlebih dahulu.
+Setelah jeda 200 ms, JavaScript membalik ink hitam menjadi putih seperti MNIST, crop bounding box, resize proporsional ke sekitar 20×20, memusatkan digit dengan center of mass, lalu membuat tensor `float32` berbentuk `(1, 28, 28, 1)`. Tensor tersebut diberikan langsung ke `model.predict()` TensorFlow.js, dan output softmax mengisi probability bar 0–9.
