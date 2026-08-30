@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MNIST Handwritten Digit Recognition</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="app-shell">
+    <header>
+      <p class="eyebrow">TensorFlow / Keras CNN</p>
+      <h1>MNIST Handwritten Digit Recognition <span>(Realtime)</span></h1>
+      <div class="status-row">
+        <label class="brush-control">Brush size
+          <input id="brush-size" type="range" min="8" max="42" value="22" aria-label="Brush size">
+          <output id="brush-value">22 px</output>
+        </label>
+        <span class="status realtime"><i></i>Realtime</span>
+        <span id="prediction-status" class="status {% if model_ready %}ready{% else %}error{% endif %}"><i></i>{% if model_ready %}Prediction Ready{% else %}Model Unavailable{% endif %}</span>
+      </div>
+    </header>
+
+    <section class="workspace">
+      <article class="card draw-card">
+        <div class="card-heading"><div><h2>Draw a digit</h2><p>Write one number from 0 to 9.</p></div><button id="clear-button" type="button">Clear</button></div>
+        <div class="canvas-wrap"><canvas id="drawing-canvas" width="300" height="300" aria-label="Drawing canvas"></canvas></div>
+      </article>
+
+      <article class="card results-card" aria-live="polite">
+        <div class="results-top">
+          <div><p class="label">Prediction</p><div id="prediction" class="prediction">-</div></div>
+          <div id="loading" class="loading" hidden><span></span>Predicting</div>
+        </div>
+        <div id="message" class="message">Draw a digit to begin.</div>
+        <div id="probability-list" class="probability-list">
+          {% for digit in range(10) %}
+          <div class="probability-row" data-digit="{{ digit }}">
+            <strong>{{ digit }}</strong><div class="bar-track"><div class="bar-fill"></div></div><output>0.0%</output>
+          </div>
+          {% endfor %}
+        </div>
+      </article>
+    </section>
+    <p class="tip">Tip: Write a single digit 0-9. Use the Clear button to reset.</p>
+  </main>
+  <script>window.MODEL_READY = {{ model_ready | tojson }};</script>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
