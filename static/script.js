@@ -14,6 +14,8 @@
   let lastPoint = null;
   let debounceTimer = null;
   let predictionVersion = 0;
+  let predictionInProgress = false;
+  let predictionQueued = false;
   let hasInk = false;
 
   probabilityList.innerHTML = Array.from({ length: 10 }, (_, digit) => `
@@ -58,6 +60,7 @@
 
   function queuePrediction() {
     if (!model || !hasInk) return;
+    if (predictionInProgress) { predictionQueued = true; return; }
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(predictCanvas, 200);
   }
@@ -103,20 +106,35 @@
   }
 
   async function predictCanvas() {
+    if (predictionInProgress) { predictionQueued = true; return; }
+    predictionInProgress = true;
     const version = ++predictionVersion; loading.hidden = false; message.textContent = 'Processing canvas…';
+    let input = null;
+    let output = null;
     try {
-      const input = makeInputTensor(), output = model.predict(input), probabilities = Array.from(await output.data());
-      input.dispose(); output.dispose();
+      input = makeInputTensor(); output = model.predict(input);
+      const probabilities = Array.from(await output.data());
       if (version !== predictionVersion) return;
       const digit = probabilities.indexOf(Math.max(...probabilities)); prediction.textContent = digit;
       rows.forEach((row, index) => { const value = probabilities[index]; row.querySelector('.bar-fill').style.width = `${value * 100}%`; row.querySelector('output').textContent = `${(value * 100).toFixed(1)}%`; row.classList.toggle('highest', index === digit); });
       message.textContent = 'Prediction updated in realtime.';
     } catch (error) { if (version === predictionVersion) message.textContent = error.message || 'Prediction failed.'; }
-    finally { if (version === predictionVersion) loading.hidden = true; }
+    finally {
+      if (input) input.dispose();
+      if (output) output.dispose();
+      predictionInProgress = false;
+      if (predictionQueued) { predictionQueued = false; queuePrediction(); }
+      if (version === predictionVersion) loading.hidden = true;
+    }
   }
 
   function resetResults() {
-    predictionVersion += 1; clearTimeout(debounceTimer); hasInk = false; prediction.textContent = '-'; loading.hidden = true;
+    predictionVersion += 1;
+    clearTimeout(debounceTimer);
+    predictionQueued = false;
+    hasInk = false;
+    prediction.textContent = '-';
+    loading.hidden = true;
     message.textContent = model ? 'Draw a digit to begin.' : 'Loading TensorFlow.js model…';
     rows.forEach(row => { row.querySelector('.bar-fill').style.width = '0%'; row.querySelector('output').textContent = '0.0%'; row.classList.remove('highest'); });
   }
